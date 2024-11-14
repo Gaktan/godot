@@ -191,7 +191,17 @@ void Script::reload_from_file() {
 	set_source_code(rel->get_source_code());
 	set_last_modified_time(rel->get_last_modified_time());
 
-	reload();
+	// Only reload the script when there are no compilation errors to prevent printing the error messages twice.
+	if (rel->is_valid()) {
+		if (Engine::get_singleton()->is_editor_hint() && is_tool()) {
+			get_language()->reload_tool_script(this, true);
+		} else {
+			// It's important to set p_keep_state to true in order to manage reloading scripts
+			// that are currently instantiated.
+			reload(true);
+		}
+	}
+
 #else
 	Resource::reload_from_file();
 #endif
@@ -229,9 +239,9 @@ Error ScriptServer::register_language(ScriptLanguage *p_language) {
 	ERR_FAIL_COND_V_MSG(_language_count >= MAX_LANGUAGES, ERR_UNAVAILABLE, "Script languages limit has been reach, cannot register more.");
 	for (int i = 0; i < _language_count; i++) {
 		const ScriptLanguage *other_language = _languages[i];
-		ERR_FAIL_COND_V_MSG(other_language->get_extension() == p_language->get_extension(), ERR_ALREADY_EXISTS, "A script language with extension '" + p_language->get_extension() + "' is already registered.");
-		ERR_FAIL_COND_V_MSG(other_language->get_name() == p_language->get_name(), ERR_ALREADY_EXISTS, "A script language with name '" + p_language->get_name() + "' is already registered.");
-		ERR_FAIL_COND_V_MSG(other_language->get_type() == p_language->get_type(), ERR_ALREADY_EXISTS, "A script language with type '" + p_language->get_type() + "' is already registered.");
+		ERR_FAIL_COND_V_MSG(other_language->get_extension() == p_language->get_extension(), ERR_ALREADY_EXISTS, vformat("A script language with extension '%s' is already registered.", p_language->get_extension()));
+		ERR_FAIL_COND_V_MSG(other_language->get_name() == p_language->get_name(), ERR_ALREADY_EXISTS, vformat("A script language with name '%s' is already registered.", p_language->get_name()));
+		ERR_FAIL_COND_V_MSG(other_language->get_type() == p_language->get_type(), ERR_ALREADY_EXISTS, vformat("A script language with type '%s' is already registered.", p_language->get_type()));
 	}
 	_languages[_language_count++] = p_language;
 	return OK;

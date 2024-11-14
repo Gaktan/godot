@@ -216,7 +216,8 @@ bool DisplayServerWayland::has_feature(Feature p_feature) const {
 		//case FEATURE_NATIVE_DIALOG:
 		//case FEATURE_NATIVE_DIALOG_INPUT:
 #ifdef DBUS_ENABLED
-		case FEATURE_NATIVE_DIALOG_FILE: {
+		case FEATURE_NATIVE_DIALOG_FILE:
+		case FEATURE_NATIVE_DIALOG_FILE_EXTRA: {
 			return true;
 		} break;
 #endif
@@ -627,6 +628,18 @@ int64_t DisplayServerWayland::window_get_native_handle(HandleType p_handle_type,
 			}
 			return 0;
 		} break;
+		case EGL_DISPLAY: {
+			if (egl_manager) {
+				return (int64_t)egl_manager->get_display(p_window);
+			}
+			return 0;
+		}
+		case EGL_CONFIG: {
+			if (egl_manager) {
+				return (int64_t)egl_manager->get_config(p_window);
+			}
+			return 0;
+		}
 #endif // GLES3_ENABLED
 
 		default: {
@@ -1344,20 +1357,31 @@ DisplayServerWayland::DisplayServerWayland(const String &p_rendering_driver, Win
 		if (rendering_context->initialize() != OK) {
 			memdelete(rendering_context);
 			rendering_context = nullptr;
-			r_error = ERR_CANT_CREATE;
+#if defined(GLES3_ENABLED)
+			bool fallback_to_opengl3 = GLOBAL_GET("rendering/rendering_device/fallback_to_opengl3");
+			if (fallback_to_opengl3 && rendering_driver != "opengl3") {
+				WARN_PRINT("Your video card drivers seem not to support the required Vulkan version, switching to OpenGL 3.");
+				rendering_driver = "opengl3";
+				OS::get_singleton()->set_current_rendering_method("gl_compatibility");
+				OS::get_singleton()->set_current_rendering_driver_name(rendering_driver);
+			} else
+#endif // GLES3_ENABLED
+			{
+				r_error = ERR_CANT_CREATE;
 
-			if (p_rendering_driver == "vulkan") {
-				OS::get_singleton()->alert(
-						vformat("Your video card drivers seem not to support the required Vulkan version.\n\n"
-								"If possible, consider updating your video card drivers or using the OpenGL 3 driver.\n\n"
-								"You can enable the OpenGL 3 driver by starting the engine from the\n"
-								"command line with the command:\n\n    \"%s\" --rendering-driver opengl3\n\n"
-								"If you recently updated your video card drivers, try rebooting.",
-								executable_name),
-						"Unable to initialize Vulkan video driver");
+				if (p_rendering_driver == "vulkan") {
+					OS::get_singleton()->alert(
+							vformat("Your video card drivers seem not to support the required Vulkan version.\n\n"
+									"If possible, consider updating your video card drivers or using the OpenGL 3 driver.\n\n"
+									"You can enable the OpenGL 3 driver by starting the engine from the\n"
+									"command line with the command:\n\n    \"%s\" --rendering-driver opengl3\n\n"
+									"If you recently updated your video card drivers, try rebooting.",
+									executable_name),
+							"Unable to initialize Vulkan video driver");
+				}
+
+				ERR_FAIL_MSG(vformat("Could not initialize %s", rendering_driver));
 			}
-
-			ERR_FAIL_MSG(vformat("Could not initialize %s", rendering_driver));
 		}
 
 		driver_found = true;
@@ -1471,12 +1495,12 @@ DisplayServerWayland::DisplayServerWayland(const String &p_rendering_driver, Win
 			driver_found = true;
 		}
 	}
+#endif // GLES3_ENABLED
 
 	if (!driver_found) {
 		r_error = ERR_UNAVAILABLE;
 		ERR_FAIL_MSG("Video driver not found.");
 	}
-#endif // GLES3_ENABLED
 
 	cursor_set_shape(CURSOR_BUSY);
 

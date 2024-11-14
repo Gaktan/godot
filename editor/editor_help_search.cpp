@@ -151,7 +151,7 @@ void EditorHelpSearch::_update_results() {
 			search_flags |= SEARCH_SHOW_HIERARCHY;
 		}
 
-		search = Ref<Runner>(memnew(Runner(results_tree, results_tree, &tree_cache, term, search_flags)));
+		search.instantiate(results_tree, results_tree, &tree_cache, term, search_flags);
 
 		// Clear old search flags to force rebuild on short term.
 		old_search_flags = 0;
@@ -162,7 +162,7 @@ void EditorHelpSearch::_update_results() {
 		hierarchy_button->set_disabled(true);
 
 		// Always show hierarchy for short searches.
-		search = Ref<Runner>(memnew(Runner(results_tree, results_tree, &tree_cache, term, search_flags | SEARCH_SHOW_HIERARCHY)));
+		search.instantiate(results_tree, results_tree, &tree_cache, term, search_flags | SEARCH_SHOW_HIERARCHY);
 
 		old_search_flags = search_flags;
 		set_process(true);
@@ -244,8 +244,8 @@ void EditorHelpSearch::_notification(int p_what) {
 			search_box->set_right_icon(get_editor_theme_icon(SNAME("Search")));
 			search_box->add_theme_icon_override("right_icon", get_editor_theme_icon(SNAME("Search")));
 
-			case_sensitive_button->set_icon(get_editor_theme_icon(SNAME("MatchCase")));
-			hierarchy_button->set_icon(get_editor_theme_icon(SNAME("ClassList")));
+			case_sensitive_button->set_button_icon(get_editor_theme_icon(SNAME("MatchCase")));
+			hierarchy_button->set_button_icon(get_editor_theme_icon(SNAME("ClassList")));
 
 			if (is_visible()) {
 				_update_results();
@@ -530,7 +530,7 @@ bool EditorHelpSearch::Runner::_phase_fill_member_items_init() {
 	return true;
 }
 
-TreeItem *EditorHelpSearch::Runner::_create_category_item(TreeItem *p_parent, const String &p_class, const StringName &p_icon, const String &p_metatype, const String &p_text) {
+TreeItem *EditorHelpSearch::Runner::_create_category_item(TreeItem *p_parent, const String &p_class, const StringName &p_icon, const String &p_text, const String &p_metatype) {
 	const String item_meta = "class_" + p_metatype + ":" + p_class;
 
 	TreeItem *item = nullptr;
@@ -620,7 +620,7 @@ bool EditorHelpSearch::Runner::_phase_fill_member_items() {
 		if ((search_flags & SEARCH_PROPERTIES) && !class_doc->properties.is_empty()) {
 			TreeItem *parent_item = item;
 			if (search_all) {
-				parent_item = _create_category_item(parent_item, class_doc->name, SNAME("MemberProperty"), TTRC("Prtoperties"), "propertiess");
+				parent_item = _create_category_item(parent_item, class_doc->name, SNAME("MemberProperty"), TTRC("Properties"), "properties");
 			}
 			for (const DocData::PropertyDoc &property_doc : class_doc->properties) {
 				_create_property_item(parent_item, class_doc, &property_doc);

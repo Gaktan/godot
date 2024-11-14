@@ -33,6 +33,7 @@
 #include "core/input/input_map.h"
 #include "core/os/keyboard.h"
 #include "editor/debugger/editor_debugger_node.h"
+#include "editor/editor_inspector.h"
 #include "editor/editor_log.h"
 #include "editor/editor_node.h"
 #include "editor/editor_property_name_processor.h"
@@ -105,8 +106,8 @@ void EditorSettingsDialog::update_navigation_preset() {
 		orbit_mod_key_2 = InputEventKey::create_reference(Key::NONE);
 		pan_mod_key_1 = InputEventKey::create_reference(Key::SHIFT);
 		pan_mod_key_2 = InputEventKey::create_reference(Key::NONE);
-		zoom_mod_key_1 = InputEventKey::create_reference(Key::SHIFT);
-		zoom_mod_key_2 = InputEventKey::create_reference(Key::CTRL);
+		zoom_mod_key_1 = InputEventKey::create_reference(Key::CTRL);
+		zoom_mod_key_2 = InputEventKey::create_reference(Key::NONE);
 	} else if (nav_scheme == Node3DEditorViewport::NAVIGATION_MAYA) {
 		set_preset = true;
 		set_orbit_mouse_button = Node3DEditorViewport::NAVIGATION_LEFT_MOUSE;
@@ -284,7 +285,7 @@ void EditorSettingsDialog::_update_icons() {
 	shortcut_search_box->set_right_icon(shortcuts->get_editor_theme_icon(SNAME("Search")));
 	shortcut_search_box->set_clear_button_enabled(true);
 
-	restart_close_button->set_icon(shortcuts->get_editor_theme_icon(SNAME("Close")));
+	restart_close_button->set_button_icon(shortcuts->get_editor_theme_icon(SNAME("Close")));
 	restart_container->add_theme_style_override(SceneStringName(panel), shortcuts->get_theme_stylebox(SceneStringName(panel), SNAME("Tree")));
 	restart_icon->set_texture(shortcuts->get_editor_theme_icon(SNAME("StatusWarning")));
 	restart_label->add_theme_color_override(SceneStringName(font_color), shortcuts->get_theme_color(SNAME("warning_color"), EditorStringName(Editor)));
@@ -806,7 +807,6 @@ void EditorSettingsDialog::_focus_current_search_box() {
 
 void EditorSettingsDialog::_advanced_toggled(bool p_button_pressed) {
 	EditorSettings::get_singleton()->set("_editor_settings_advanced_mode", p_button_pressed);
-	inspector->set_restrict_to_basic_settings(!p_button_pressed);
 }
 
 void EditorSettingsDialog::_editor_restart() {
@@ -860,8 +860,8 @@ EditorSettingsDialog::EditorSettingsDialog() {
 
 	inspector = memnew(SectionedInspector);
 	inspector->get_inspector()->set_use_filter(true);
-	inspector->set_restrict_to_basic_settings(!use_advanced);
 	inspector->register_search_box(search_box);
+	inspector->register_advanced_toggle(advanced_switch);
 	inspector->set_v_size_flags(Control::SIZE_EXPAND_FILL);
 	tab_general->add_child(inspector);
 	inspector->get_inspector()->connect("property_edited", callable_mp(this, &EditorSettingsDialog::_settings_property_edited));
